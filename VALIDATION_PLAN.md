@@ -34,8 +34,10 @@ that fails any single criterion is a regression.
 
 | # | Stage | Criterion | Expected output |
 |---|---|---|---|
-| 1a | V2-rtl L2==L3 | `tb/alpha_mm` cocotb run, 200 random cases | `0 mismatches` |
-| 1b | V2-rtl L1==L3 | `tb/alpha_mm` cocotb run, 50 golden cases | `0 mismatches` |
+| 1a | **L1==L2 pure-Python** | `tb/test_l1_eq_l2.py` covers alpha_mm + priority_array_k(_packed) + m0 | all PASS |
+| 1b | **L2==L3 alpha_mm** | `tb/alpha_mm` cocotb (200 random + 50 golden) | `0 mismatches` |
+| 1c | **L2==L3 priority_array_k_packed** | `tb/priority_array_k` cocotb (400 multi-sym events) | `0 mismatches` |
+| 1d | **L2==L3 m0_multi_symbol** | `tb/m0_multi_symbol` cocotb (270 cycles) | `0 mismatches` |
 | 2 | Data acquisition | `S010303.itch` 212,330,490 bytes | md5 `c1b56c02f4594b6e626569a61edb26de` |
 | 3a | Pipeline depth | `tb/hft_alpha_perf` cocotb on real MSFT | **5 cycles** steady-state |
 | 3b | Throughput | `tb/hft_alpha_perf` | II = 1.000 cyc/event |
@@ -97,40 +99,110 @@ pip install hftbacktest
 
 ---
 
-### Stage 1: V2-rtl `alpha_mm` (golden = pymodel = RTL)
+### Stage 1: L1 = L2 = L3 consistency (math = cycle pymodel = RTL)
 
-Validates the **strategy primitive** in isolation — no data dependency,
-no integrated pipeline — so failures here localize cleanly to the
-`alpha_mm` RTL or its pymodel.
+Stage 1 is split into 4 sub-stages, each isolating one primitive's
+validation. The new packaging covers **every Python model that
+ships in the repo with a corresponding RTL file**, so any drift
+between math/cycle/RTL is caught.
+
+#### Stage 1a: L1 == L2 (pure Python, no RTL)
+
+Drives golden math + cycle pymodel side-by-side, asserting they
+produce identical outputs. This catches Python-side drift before
+any iverilog run.
 
 ```bash
-cd tb/alpha_mm
-make clean && make
+PYTHONPATH=. python3 tb/test_l1_eq_l2.py
 ```
 
-**Expected output (last 5 lines):**
+Expected output:
+```
+L1 == L2 consistency tests (pure Python):
+  alpha_mm L1==L2: 500/500 match
+  priority_array_k L1==L2: 50/50 match (DRAIN=272)
+  priority_array_k_packed L1==L2: 30/30 match
+  m0_multi_symbol pymodel: 200 events processed cleanly
+L1 == L2 consistency: ALL PASS
+```
 
+**Pass criterion:** final line `L1 == L2 consistency: ALL PASS`.
+
+**Runtime: ~5 seconds.**
+
+#### Stage 1b: V2-rtl `alpha_mm` (L1 == L2 == L3 strategy)
+
+Validates the strategy primitive in isolation — both RTL == pymodel
+(L2==L3, 200 random cases) AND RTL == golden math (L1==L3, 49 golden
+cases).
+
+```bash
+cd tb/alpha_mm && make
+```
+
+Expected output:
 ```
 V2-rtl PASS: alpha_mm RTL == cycle pymodel on 200 random inputs.
 L1==L3 PASS: alpha_mm RTL == golden math on 49 cases
-** test_alpha_mm.test_alpha_mm_rtl_eq_pymodel   PASS  ...
-** test_alpha_mm.test_alpha_mm_rtl_eq_golden    PASS  ...
-** TESTS=2 PASS=2 FAIL=0 SKIP=0  ...
+** TESTS=2 PASS=2 FAIL=0 SKIP=0
 ```
 
-**Pass criteria (BOTH must hold):**
-- `TESTS=2 PASS=2 FAIL=0`
-- both inner-test logs show `PASS:` (not `FAIL:` or assertion errors)
+**Runtime: ~2 seconds.**
 
-**What this proves:**
-- `golden/alpha_mm.py` math model (the reference)
-- `pymodel/alpha_mm.py` cycle-accurate model
-- `rtl/alpha_mm.sv` SystemVerilog implementation
-all produce **bit-exact** identical (bid, ask) quotes for 250 random
-input vectors covering positive/negative position, signed OFI, and
-varying alpha thresholds.
+#### Stage 1c: V2-rtl `priority_array_k_packed` (L2 == L3)
+
+Validates the M0 underlying primitive bit-exact: cycle pymodel
+vs RTL on 400 random multi-symbol insert/remove events.
+
+```bash
+cd tb/priority_array_k && make
+```
+
+Expected output:
+```
+L2==L3 PASS: priority_array_k_packed RTL == cycle pymodel
+on 400 random multi-symbol events (N_SYMBOLS=4, K_LEVELS=2, KEY_BITS=6)
+```
 
 **Runtime: ~2 seconds.**
+
+#### Stage 1d: V2-rtl `m0_multi_symbol` (L2 == L3)
+
+Validates the M0 wrapper bit-exact: cycle pymodel vs RTL on 270
+cycles covering inserts, deletes, and out-of-ROI events at N=8.
+
+```bash
+cd tb/m0_multi_symbol && make
+```
+
+Expected output:
+```
+L2==L3 PASS (m0_multi_symbol): 270 cycles, N_SYMBOLS=8, ROI_SIZE=64,
+RTL == cycle pymodel.
+```
+
+**Runtime: ~1 second.**
+
+#### Stage 1 acceptance criteria (ALL must hold)
+
+- Stage 1a: `L1 == L2 consistency: ALL PASS`
+- Stage 1b: `TESTS=2 PASS=2 FAIL=0`
+- Stage 1c: `TESTS=1 PASS=1 FAIL=0` + log shows `L2==L3 PASS`
+- Stage 1d: `TESTS=1 PASS=1 FAIL=0` + log shows `L2==L3 PASS`
+
+**What Stage 1 collectively proves:**
+
+| Module | L1 (golden) | L2 (cycle pymodel) | L3 (RTL) | Coverage |
+|---|---|---|---|---|
+| `alpha_mm` | ✅ Stage 1a, 1b | ✅ Stage 1a, 1b | ✅ Stage 1b | full L1==L2==L3 |
+| `priority_array_k` | ✅ Stage 1a | ✅ Stage 1a | (used inside packed) | L1==L2 |
+| `priority_array_k_packed` | ✅ Stage 1a | ✅ Stage 1a, 1c | ✅ Stage 1c | full L1==L2==L3 |
+| `m0_multi_symbol` | (wrapper of packed) | ✅ Stage 1a (smoke), 1d | ✅ Stage 1d | L2==L3 |
+
+The math layer for `m0_multi_symbol` is a thin wrapper over
+`priority_array_k_packed` (a per-side instantiation); its L1 is
+inherited from the packed primitive. The 4 V2-rtl tests cover
+every (math, pymodel, RTL) triple in the repo's Python source.
 
 ---
 

@@ -74,17 +74,53 @@ python3 -c "import numpy; print(f'numpy {numpy.__version__}')" \
 mark "Stage 0 (env): OK"
 
 # -----------------------------------------------------------------
-# Stage 1: V2-rtl alpha_mm
+# Stage 1a: L1 == L2 consistency (pure Python, no RTL)
 # -----------------------------------------------------------------
-banner "Stage 1: V2-rtl alpha_mm (golden = pymodel = RTL)"
+banner "Stage 1a: L1 == L2 consistency (pure Python)"
+LOG="$(PYTHONPATH=. python3 tb/test_l1_eq_l2.py 2>&1 || true)"
+echo "$LOG"
+echo "$LOG" | grep -q "L1 == L2 consistency: ALL PASS" \
+    || fail "Stage 1a: L1 != L2"
+mark "Stage 1a (L1==L2 pure-Python): OK"
+
+# -----------------------------------------------------------------
+# Stage 1b: V2-rtl alpha_mm (L1 == L2 == L3 strategy)
+# -----------------------------------------------------------------
+banner "Stage 1b: V2-rtl alpha_mm (golden = pymodel = RTL)"
 pushd tb/alpha_mm > /dev/null
 make clean -s > /dev/null 2>&1 || true
 LOG="$(make -s 2>&1 || true)"
 echo "$LOG" | grep -E "PASS|FAIL" | tail -10
 echo "$LOG" | grep -q "TESTS=2 PASS=2 FAIL=0" \
-    || { echo "$LOG" | tail -30; fail "Stage 1: V2-rtl tests"; }
+    || { echo "$LOG" | tail -30; fail "Stage 1b: V2-rtl alpha_mm"; }
 popd > /dev/null
-mark "Stage 1 (V2-rtl alpha_mm): OK (2/2 tests pass)"
+mark "Stage 1b (V2-rtl alpha_mm): OK (2/2 tests pass)"
+
+# -----------------------------------------------------------------
+# Stage 1c: V2-rtl priority_array_k_packed (L2 == L3 M0 underlying)
+# -----------------------------------------------------------------
+banner "Stage 1c: V2-rtl priority_array_k_packed (cycle pymodel = RTL)"
+pushd tb/priority_array_k > /dev/null
+make clean -s > /dev/null 2>&1 || true
+LOG="$(make -s 2>&1 || true)"
+echo "$LOG" | grep -E "PASS|FAIL" | tail -5
+echo "$LOG" | grep -q "TESTS=1 PASS=1 FAIL=0" \
+    || { echo "$LOG" | tail -30; fail "Stage 1c: V2-rtl priority_array_k_packed"; }
+popd > /dev/null
+mark "Stage 1c (V2-rtl priority_array_k_packed): OK"
+
+# -----------------------------------------------------------------
+# Stage 1d: V2-rtl m0_multi_symbol (L2 == L3 M0 wrapper)
+# -----------------------------------------------------------------
+banner "Stage 1d: V2-rtl m0_multi_symbol (cycle pymodel = RTL)"
+pushd tb/m0_multi_symbol > /dev/null
+make clean -s > /dev/null 2>&1 || true
+LOG="$(make -s 2>&1 || true)"
+echo "$LOG" | grep -E "PASS|FAIL" | tail -5
+echo "$LOG" | grep -q "TESTS=1 PASS=1 FAIL=0" \
+    || { echo "$LOG" | tail -30; fail "Stage 1d: V2-rtl m0_multi_symbol"; }
+popd > /dev/null
+mark "Stage 1d (V2-rtl m0_multi_symbol): OK"
 
 # -----------------------------------------------------------------
 # Stage 2: data acquisition (optional)
