@@ -1,0 +1,35 @@
+hft_alpha_pipeline V4 P&R (v1.28.50)
+======================================
+Part:           xcu50-fsvh2104-2-e
+Target period:  3.0 ns (333.33 MHz)
+Top:            hft_alpha_pipeline
+Generics:       N_SYMBOLS=1 ROI_LB=533504 ROI_SIZE=1024 PRICE_BITS=32 VAL_BITS=24 PX_BITS=24 QTY_BITS=16 POS_BITS=32 OFI_BITS=32 K_LEVELS=2 HALF_SPREAD=2 DEFAULT_QTY=10 MAX_PX_DEV=10000 MAX_QTY=10000 MAX_POSITION=1000000
+
+Resource utilization:
+| CLB LUTs                   | 1077 |     0 |          0 |    871680 |  0.12 |
+|     LUT as Distributed RAM |  128 |     0 |            |           |       |
+| CLB Registers              |  494 |     0 |          0 |   1743360 |  0.03 |
+|   LUT as Distributed RAM                   |  128 |     0 |            |           |       |
+| CLB Registers                              |  494 |     0 |          0 |   1743360 |  0.03 |
+| Block RAM Tile    |    2 |     0 |          0 |      1344 |  0.15 |
+|   RAMB36/FIFO*    |    2 |     0 |          0 |      1344 |  0.15 |
+|   RAMB18          |    0 |     0 |          0 |      2688 |  0.00 |
+| URAM              |    0 |     0 |          0 |       640 |  0.00 |
+* Note: Each Block RAM Tile only has one FIFO logic available and therefore can accommodate only one FIFO36E2 or one FIFO18E2. However, if a FIFO18E2 occupies a Block RAM Tile, that tile can still accommodate a RAMB18E2
+| DSPs      |    0 |     0 |          0 |      5952 |  0.00 |
+| CLB LUTs                   | 1077 |    0 |   0.24 |   0.00 |
+|     LUT as Distributed RAM |  128 |    0 |   0.06 |   0.00 |
+| CLB Registers              |  494 |    0 |   0.06 |   0.00 |
+| Block RAM Tile             |    2 |    0 |   0.30 |   0.00 |
+|   RAMB36/FIFO              |    2 |    0 |   0.30 |   0.00 |
+|   RAMB18                   |    0 |    0 |   0.00 |   0.00 |
+| URAM                       |    0 |    0 |   0.00 |   0.00 |
+| DSPs                       |    0 |    0 |   0.00 |   0.00 |
+* Note: Available Control Sets based on CLB Registers / 8
+
+Timing summary:
+Setup :            0  Failing Endpoints,  Worst Slack        0.370ns,  Total Violation        0.000ns
+Hold  :           58  Failing Endpoints,  Worst Slack       -0.080ns,  Total Violation       -2.864ns
+PW    :            0  Failing Endpoints,  Worst Slack        0.958ns,  Total Violation        0.000ns
+Setup :            0  Failing Endpoints,  Worst Slack        2.894ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.010ns,  Total Violation        0.000ns

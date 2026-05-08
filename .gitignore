@@ -1,0 +1,20 @@
+# Cocotb / Icarus build artefacts
+sim_build/
+results.xml
+*.vcd
+__pycache__/
+*.pyc
+
+# Vivado P&R artefacts (we ship the curated reports in synth/)
+.Xil/
+*.jou
+*.log.bak
+vivado_*.backup.*
+.cache/
+.runs/
+
+# Real exchange data lives outside the repo (free download via script)
+/data/
+*.itch
+*.csv
+*.gz
