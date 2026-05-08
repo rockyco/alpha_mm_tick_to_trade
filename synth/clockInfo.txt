@@ -1,0 +1,10 @@
+-------------------------------------
+| Tool Version : Vivado v.2024.2.2
+| Date         : Sat May  9 05:36:35 2026
+| Host         : amd
+| Design       : design_1
+| Device       : xcu50-fsvh2104-2-E-
+-------------------------------------
+
+For more information on clockInfo.txt clock routing debug file see https://support.xilinx.com/s/article/000035660?language=en_US
+

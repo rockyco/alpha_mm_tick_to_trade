@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2.2 (lin64) Build 6060944 Thu Mar 06 19:10:09 MST 2025
-| Date         : Sat May  9 04:45:33 2026
+| Date         : Sat May  9 05:37:37 2026
 | Host         : amd running 64-bit Ubuntu 22.04.5 LTS
 | Command      : report_utilization -file ./hft_alpha_util.rpt
 | Design       : hft_alpha_pipeline

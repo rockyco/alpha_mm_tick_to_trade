@@ -66,8 +66,6 @@ from xcheck.lobster_tape_loader import (
     load_lobster_messages,
     lobster_to_framework_events,
 )
-    generate_tape,
-)
 from golden.priority_array_k_packed import (
     PriorityArrayKPacked,
 )
@@ -396,82 +394,4 @@ def real_hftbacktest_replay_book(
 # ---------------------------------------------------------------------------
 
 
-def run_xcheck_book(
-    tape_source: str,
-    tape_path: Path | str | None = None,
-    *,
-    n_events: int = 1000,
-    seed: int = 2026,
-    out_dir: Path | str = "synth_results/xcheck",
-) -> dict:
-    """Drive a tape through the SOTA-mirror reference; record + persist trace.
 
-    `tape_source`: 'synthetic' or 'lobster'.
-      - synthetic: uses synth_lob_tape.generate_tape(n_events, seed).
-      - lobster: parses tape_path as LOBSTER message file.
-
-    Returns a summary dict with trace count + file paths. Persists JSONL.
-    """
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    if tape_source == "synthetic":
-        synth_events = generate_tape(n_events=n_events, seed=seed)
-        tape: list[TapeEvent] = []
-        # Convert synth events to TapeEvent format. synth_lob_tape produces
-        # rows with bid_px/ask_px/etc; we translate to TapeEvent here.
-        for i, e in enumerate(synth_events):
-            # Note: synth tape has BOTH sides per row. Emit two events per row:
-            tape.append(TapeEvent(
-                timestamp_ns=i * 1000, sym_id=0, op=1,
-                side=0, price_ticks=e.bid_px, new_abs_qty=e.bid_qty,
-            ))
-            tape.append(TapeEvent(
-                timestamp_ns=i * 1000 + 500, sym_id=0, op=1,
-                side=1, price_ticks=e.ask_px, new_abs_qty=e.ask_qty,
-            ))
-    elif tape_source == "lobster":
-        if tape_path is None:
-            raise ValueError("lobster source requires tape_path")
-        lob = load_lobster_messages(tape_path)
-        tape = list(lobster_to_framework_events(lob))
-    else:
-        raise ValueError(f"unknown tape_source: {tape_source}")
-
-    # Run the SOTA mirror
-    trace_a = sota_mirror_replay_book(tape, n_symbols=1)
-
-    # Persist
-    out_a = out_dir / "trace_sota_mirror.jsonl"
-    n_a = trace_to_jsonl(trace_a, out_a)
-
-    return {
-        "tape_source": tape_source,
-        "n_tape_events": len(tape),
-        "n_trace_rows": n_a,
-        "trace_path": str(out_a),
-    }
-
-
-def main() -> int:
-    import argparse
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--tape-source", choices=["synthetic", "lobster"],
-                    default="synthetic")
-    ap.add_argument("--tape-path", type=Path, default=None)
-    ap.add_argument("--n-events", type=int, default=1000)
-    ap.add_argument("--out-dir", type=Path, default="synth_results/xcheck")
-    args = ap.parse_args()
-
-    summary = run_xcheck_book(
-        tape_source=args.tape_source,
-        tape_path=args.tape_path,
-        n_events=args.n_events,
-        out_dir=args.out_dir,
-    )
-    print(json.dumps(summary, indent=2))
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
